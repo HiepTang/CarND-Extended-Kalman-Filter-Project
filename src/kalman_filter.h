@@ -64,6 +64,13 @@ public:
    */
   void UpdateEKF(const Eigen::VectorXd &z);
 
+private:
+  /**
+  * Updates the state with error
+  * @param y The error vector
+  **/
+  void UpdateState(const Eigen::VectorXd &y);
+
 };
 
 #endif /* KALMAN_FILTER_H_ */

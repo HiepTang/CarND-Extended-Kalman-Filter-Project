@@ -25,6 +25,9 @@ void KalmanFilter::Predict() {
   TODO:
     * predict the state
   */
+  x_ = F_ * x_;
+  MatrixXd Ft = F_.transpose();
+  P_ = F_ * P_ * Ft + Q_;
 }
 
 void KalmanFilter::Update(const VectorXd &z) {
@@ -32,6 +35,9 @@ void KalmanFilter::Update(const VectorXd &z) {
   TODO:
     * update the state by using Kalman Filter equations
   */
+  // Error calculation
+  VectorXd y = z - H_ * x_;
+  UpdateState(y);
 }
 
 void KalmanFilter::UpdateEKF(const VectorXd &z) {
@@ -39,4 +45,37 @@ void KalmanFilter::UpdateEKF(const VectorXd &z) {
   TODO:
     * update the state by using Extended Kalman Filter equations
   */
+  // Convert x_ to ro, theta, rho_dot
+  double ro = sqrt(x_(0) * x_(0) + x_(1) * x_(1));
+  double theta = atan2(x_(1), x_(0));
+  double rho_dot = (x_(0)*x_(2) + x_(1)*x_(3)) / ro;
+
+  VectorXd h = VectorXd(3);
+  h << ro, theta, rho_dot;
+
+  VectorXd y = z - h;
+  // the resulting angle phi in the y vector should be adjusted so that it is between -pi and pi.
+  // Add or subtract 2pi until the angle is within the desired range.
+  while ( y(1) > M_PI || y(1) < -M_PI ) {
+    if ( y(1) > M_PI ) {
+      y(1) -= 2 *M_PI;
+    } else {
+      y(1) += 2 * M_PI;
+    }
+  }
+
+  UpdateState(y);
+
+}
+
+void KalmanFilter::UpdateState(const Eigen::VectorXd &y){
+  MatrixXd Ht = H_.transpose();
+  MatrixXd S = H_ * P_ * Ht + R_;
+  MatrixXd Si = S.inverse();
+  MatrixXd K = P_ * Ht * Si;
+
+  // Calculate new state
+  x_ = x_ + (K * y);
+  MatrixXd I = MatrixXd::Identity(x_.size(), x_.size());
+  P_ = (I - K * H_) * P_;
 }
